@@ -50,21 +50,70 @@ desc to_collect_energy;
 ```
 
 # 2. 表导入数据
-# 2.1 生成100W行数据
-# 2.2 进入数据库，执行导入
+`生成数据`
+```py
+python generate_csv.py 10 #生成10W行数据
+python generate_csv.py 100 #生成100W行数据
+```
+# 2.1 100W行数据
+`执行导入的语句`
 ```sql
 LOAD DATA LOCAL INFILE 'to-collect-energy_100W.csv' INTO TABLE to_collect_energy FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\n';
 
-LOAD DATA LOCAL INFILE 'total-energy_100W.csv' INTO TABLE total_energy 
-FIELDS TERMINATED BY ',' 
-OPTIONALLY ENCLOSED BY '"' 
-LINES TERMINATED BY '\n';
+LOAD DATA LOCAL INFILE 'total-energy_100W.csv' INTO TABLE total_energy FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\n';
 ```
-- `to_collect_energy`表，导入时间`5.517 sec`
-- `total-energy`表，导入时间`10.051 sec`
+- `to_collect_energy`表，导入时间`5517 ms`
+- `total-energy`表，导入时间`10051 ms`
 
-# total_energy 表测试
+# 2.2 10W行数据
+```sql
+LOAD DATA LOCAL INFILE 'to-collect-energy_10W.csv' INTO TABLE to_collect_energy FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\n';
 
-# to_collect_energy 表测试
+LOAD DATA LOCAL INFILE 'total-energy_10W.csv' INTO TABLE total_energy FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\n';
+```
+- `to_collect_energy`表，导入时间`546 ms`
+- `total-energy`表，导入时间`996 ms`
 
-# 总结
+# 3. total_energy 10W表测试
+# 3.1 多语句批更新
+`update total_energy set total_energy = ? where user_id = ?`
+# 3.2 多事务
+```sql
+update total_energy set total_energy = 0; where user_id = "0";
+update total_energy set total_energy = 1; where user_id = "1";
+update total_energy set total_energy = 2; where user_id = "2";
+-- ......
+```
+耗时`12697.3 ms`
+# 3.3 单事务
+```sql
+START TRANSACTION;
+update total_energy set total_energy = 0; where user_id = "0";
+update total_energy set total_energy = 1; where user_id = "1";
+update total_energy set total_energy = 2; where user_id = "2";
+-- ......
+COMMIT;
+```
+耗时`12134.1 ms`
+# 4. to_collect_energy 10W表测试
+# 4.1 多语句批更新
+`update to_collect_energy set to_collect_energy = ?, status = ? where id = ?`
+# 4.2 多事务
+```sql
+update to_collect_energy set to_collect_energy = 0, status = "EMPTY" where id = 0;
+update to_collect_energy set to_collect_energy = 1, status = "EMPTY" where id = 1;
+update to_collect_energy set to_collect_energy = 2, status = "EMPTY" where id = 2;
+-- ......
+```
+耗时 `68312.7 ms`
+# 4.3 单事务
+```sql
+START TRANSACTION;
+update to_collect_energy set to_collect_energy = 0, status = "EMPTY" where id = 0;
+update to_collect_energy set to_collect_energy = 1, status = "EMPTY" where id = 1;
+update to_collect_energy set to_collect_energy = 2, status = "EMPTY" where id = 2;
+-- ......
+COMMIT;
+```
+耗时 `14799.3 ms`
+# 5. 总结
