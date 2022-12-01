@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 #include <memory>
 #include <chrono>
 #include <thread>
@@ -6,6 +7,7 @@
 #include "mariadb/conncpp.hpp"
 
 // 实际修改的记录条数，(100W条耗时太长)
+// #define RECORD_NUM (10 * 10000)
 #define RECORD_NUM (10 * 10000)
 
 sql::Driver *driver = sql::mariadb::get_driver_instance();
@@ -102,10 +104,36 @@ void multi_statement_single_txn_update() {
     std::cout << "success: multi_statement_single_txn_update, elapsed time: " << elapsed.count() << " ms\n"; 
 }
 
+void rewrite_update() {
+    auto conn = get_conn();
+    using namespace std::chrono_literals;
+    auto start = std::chrono::high_resolution_clock::now();
+    std::string stmt_str;
+    stmt_str.reserve(23000000);
+    stmt_str = "update total_energy as m, ( select 0 as c1, \"0\" as c2 ";
+    for (int id = 1; id < RECORD_NUM; id++) {
+        stmt_str += "union all select "+ std::to_string(id) +", "+ std::to_string(id) + " ";
+    }
+    stmt_str += ") as r set m.total_energy = r.c1 where m.user_id = r.c2;";
+    std::unique_ptr<sql::PreparedStatement> stmt(conn->prepareStatement(stmt_str));
+    // note(wq): 下列做法，非常费时!
+    // for (int i = 0; i < RECORD_NUM; i++) {
+    //     stmt->setInt(2 * i + 1, i);
+    //     stmt->setString(2 * i + 2, std::to_string(i));
+    // }
+    std::cout << "--------------------------------------------\n"; 
+    stmt->executeQuery();
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = end-start;
+    std::cout << "success: rewrite_update, elapsed time: " << elapsed.count() << " ms\n"; 
+}
+
 int main() {
     create_total_energy();
     multi_statement_single_txn_update();
     create_total_energy();
     multi_statement_multi_txn_update();
+    create_total_energy();
+    rewrite_update();
     return 0;
 }

@@ -95,6 +95,20 @@ update total_energy set total_energy = 2; where user_id = "2";
 COMMIT;
 ```
 耗时`12134.1 ms`
+# 3.4 改写
+```sql 
+update total_energy set total_energy = 0; where user_id = "0";
+update total_energy set total_energy = 1; where user_id = "1";
+update total_energy set total_energy = 2; where user_id = "2";
+```
+可改写为
+```sql
+update total_energy as m, ( select 0 as c1, "0" as c2
+union all select 1, "1"
+union all select 2, "2"
+) as r set m.total_energy = r.c1 where m.user_id = r.c2;
+```
+耗时`669.154 ms`
 # 4. to_collect_energy 10W表测试
 # 4.1 多语句批更新
 `update to_collect_energy set to_collect_energy = ?, status = ? where id = ?`
@@ -116,4 +130,35 @@ update to_collect_energy set to_collect_energy = 2, status = "EMPTY" where id = 
 COMMIT;
 ```
 耗时 `14799.3 ms`
+# 4.4 改写
+```sql 
+update to_collect_energy set to_collect_energy = 0, status = "EMPTY" where id = 0;
+update to_collect_energy set to_collect_energy = 1, status = "EMPTY" where id = 1;
+update to_collect_energy set to_collect_energy = 2, status = "EMPTY" where id = 2;
+```
+可改写为
+```sql
+update to_collect_energy as m, ( select 0 as c1, "EMPTY" as c2, 0 as c3
+union all select 1, "EMPTY", 1
+union all select 2, "EMPTY", 2
+) as r set m.to_collect_energy = r.c1, m.status = r.c2 where m.id = r.c3;
+```
+耗时`2100.98 ms`
 # 5. 总结
+`total_energy 10W表`
+| 方式 | 时间 (ms) |
+| :-----| ----: |
+| 导入数据 | 996 |
+| 提交多次 | 12697.3 |
+| 提交一次 | 12134.1 |
+| 改写 | 669.154 |
+
+`to_collect_energy 10W表`
+| 方式 | 时间 (ms) |
+| :-----| ----: |
+| 导入数据 | 546 |
+| 提交多次 | 68312.7 |
+| 提交一次 | 14799.3 |
+| 改写 | 2100.98 |
+
+参考[技术分享 | 在MySQL对于批量更新操作的一种优化方式](https://zhuanlan.zhihu.com/p/447476696)

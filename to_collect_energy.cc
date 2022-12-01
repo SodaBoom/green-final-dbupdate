@@ -126,12 +126,30 @@ void multi_statement_single_txn_update() {
     std::cout << "success: multi_statement_single_txn_update, elapsed time: " << elapsed.count() << " ms\n"; 
 }
 
+void rewrite_update() {
+    auto conn = get_conn();
+    using namespace std::chrono_literals;
+    auto start = std::chrono::high_resolution_clock::now();
+    std::string stmt_str;
+    stmt_str.reserve(40000000);
+    stmt_str = "update to_collect_energy as m, ( select 0 as c1, \"EMPTY\" as c2, 0 as c3 ";
+    for (int id = 1; id < RECORD_NUM; id++) {
+        stmt_str += "union all select "+ std::to_string(id) +", \"EMPTY\", "+ std::to_string(id) + " ";
+    }
+    stmt_str += ") as r set m.to_collect_energy = r.c1, m.status = r.c2 where m.id = r.c3;";
+    std::unique_ptr<sql::PreparedStatement> stmt(conn->prepareStatement(stmt_str));
+    std::cout << "--------------------------------------------\n"; 
+    stmt->executeQuery();
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = end-start;
+    std::cout << "success: rewrite_update, elapsed time: " << elapsed.count() << " ms\n"; 
+}
 int main() {
-    // find_all();
-    // insert();
     create_to_collect_energy();
     multi_statement_single_txn_update();
     create_to_collect_energy();
     multi_statement_multi_txn_update();
+    create_to_collect_energy();
+    rewrite_update();
     return 0;
 }
