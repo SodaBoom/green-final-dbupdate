@@ -79,27 +79,27 @@ LOAD DATA LOCAL INFILE 'total-energy_10W.csv' INTO TABLE total_energy FIELDS TER
 `update total_energy set total_energy = ? where user_id = ?`
 # 3.2 多事务
 ```sql
-update total_energy set total_energy = 0; where user_id = "0";
-update total_energy set total_energy = 1; where user_id = "1";
-update total_energy set total_energy = 2; where user_id = "2";
+update total_energy set total_energy = 0 where user_id = "0";
+update total_energy set total_energy = 1 where user_id = "1";
+update total_energy set total_energy = 2 where user_id = "2";
 -- ......
 ```
 耗时`12697.3 ms`
 # 3.3 单事务
 ```sql
 START TRANSACTION;
-update total_energy set total_energy = 0; where user_id = "0";
-update total_energy set total_energy = 1; where user_id = "1";
-update total_energy set total_energy = 2; where user_id = "2";
+update total_energy set total_energy = 0 where user_id = "0";
+update total_energy set total_energy = 1 where user_id = "1";
+update total_energy set total_energy = 2 where user_id = "2";
 -- ......
 COMMIT;
 ```
 耗时`12134.1 ms`
 # 3.4 改写
 ```sql 
-update total_energy set total_energy = 0; where user_id = "0";
-update total_energy set total_energy = 1; where user_id = "1";
-update total_energy set total_energy = 2; where user_id = "2";
+update total_energy set total_energy = 0 where user_id = "0";
+update total_energy set total_energy = 1 where user_id = "1";
+update total_energy set total_energy = 2 where user_id = "2";
 ```
 可改写为
 ```sql
@@ -143,7 +143,7 @@ union all select 1, "EMPTY", 1
 union all select 2, "EMPTY", 2
 ) as r set m.to_collect_energy = r.c1, m.status = r.c2 where m.id = r.c3;
 ```
-耗时`2100.98 ms`
+耗时`669.154 ms`
 # 5. 总结
 `total_energy 10W表`
 | 方式 | 时间 (ms) |
