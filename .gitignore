@@ -1,3 +1,2 @@
 build
-to-collect-energy_100W.csv
-total-energy_100W.csv
+*.csv
